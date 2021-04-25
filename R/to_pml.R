@@ -63,6 +63,68 @@ to_pml.ms_barchart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FAL
                   "</c:barChart>" )
 }
 
+to_pml.ms_piechart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FALSE, ...){
+
+  if( "clustered" %in% x$options$grouping )
+    if( !x$label_settings$position %in% clustered_pos ){
+      stop("label position issue with grouping 'clustered'.",
+           "Arg. position in chart_data_labels() should match one of ",
+           paste(shQuote(clustered_pos), collapse = ", "), ".", call. = FALSE)
+    }
+  if( "stacked" %in% x$options$grouping )
+    if( !x$label_settings$position %in% stacked_pos ){
+      stop("label position issue with grouping 'clustered'.",
+           "Arg. position in chart_data_labels() should match one of ",
+           paste(shQuote(stacked_pos), collapse = ", "), ".", call. = FALSE)
+    }
+
+  series <- as_series(x, x_class = serie_builtin_class(x$data[[x$x]]),
+                      y_class = serie_builtin_class(x$data[[x$y]]), sheetname = sheetname )
+
+  str_series_ <- sapply( series, function(serie, template ){
+    marker_str <- get_sppr_xml(serie$fill, serie$stroke, serie$line_width )
+
+    label_settings <- x$label_settings
+    label_settings$labels_fp <- serie$labels_fp
+
+    if(!is.null(x$label_cols)){
+      label_pml <- to_pml(serie$label)
+    } else label_pml <- ""
+
+    paste0(
+      "<c:ser>",
+      sprintf("<c:idx val=\"%.0f\"/>", serie$idx),
+      sprintf("<c:order val=\"%.0f\"/>", serie$order),
+      sprintf("<c:tx>%s</c:tx>", to_pml(serie$tx)),
+      marker_str,
+      # "<c:invertIfNegative val=\"0\"/>",
+      to_pml(label_settings, show_label = !is.null(x$label_cols)),
+      "<c:cat>", to_pml(serie$x), "</c:cat>",
+      "<c:val>", to_pml(serie$y), "</c:val>",
+      label_pml,
+      "</c:ser>"
+    )
+  })
+  str_series_ <- paste(str_series_, collapse = "")
+
+  x_ax_id <- sprintf("<c:axId val=\"%s\"/>", id_x)
+  y_ax_id <- sprintf("<c:axId val=\"%s\"/>", id_y)
+
+  dir_ <- structure(c("bar", "col"), .Names = c("horizontal", "vertical"))
+  dir_ <- dir_[x$options$dir]
+
+  paste0( "<c:pieChart>",
+          # sprintf("<c:barDir val=\"%s\"/>", dir_),
+          # sprintf("<c:grouping val=\"%s\"/>", x$options$grouping),
+          sprintf("<c:varyColors val=\"%.0f\"/>", x$options$vary_colors),
+          str_series_,
+          to_pml(x$label_settings, !is.null(x$label_cols)),
+          # sprintf("<c:gapWidth val=\"%.0f\"/>", x$options$gap_width),
+          # sprintf("<c:overlap val=\"%.0f\"/>", x$options$overlap),
+          # x_ax_id, y_ax_id,
+          "</c:pieChart>" )
+}
+
 standard_pos <- c("b", "ctr", "l", "r", "t")
 to_pml.ms_linechart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FALSE, ...){
 

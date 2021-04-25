@@ -99,7 +99,52 @@ ms_barchart <- function(data, x, y, group = NULL, labels = NULL){
   out
 }
 
+#' @title piechart object
+#' @description Creation of a piechart object that can be
+#' inserted in a 'Microsoft' document.
+#'
+#' Bar charts illustrate comparisons among individual items. In a bar chart, the
+#' categories are typically organized along the vertical axis, and the values
+#' along the horizontal axis.
+#'
+#' Consider using a bar chart when:
+#'
+#' * The axis labels are long.
+#' * The values that are shown are durations.
+#' @inheritParams ms_piechart
+#' @family 'Office' chart objects
+#' @seealso [chart_settings()], [chart_ax_x()], [chart_ax_y()],
+#' [chart_data_labels()], [chart_theme()], [chart_labels()]
+#' @export
+#' @section Illustrations:
+#'
+#' \if{html}{
+#'
+#' \figure{fig_ms_barchart_1.png}{options: width=60\%}
+#'
+#' \figure{fig_ms_barchart_2.png}{options: width=60\%}
+#'
+#' \figure{fig_ms_barchart_3.png}{options: width=60\%}
+#'
+#' }
+#' @examples
+#' library(officer)
+#' @example examples/01_barchart.R
+ms_piechart <- function(data, x, y, group = NULL, labels = NULL){
 
+  if(!is.numeric(data[[y]])){
+    stop("y column should be numeric.")
+  }
+  check_x <- inherits(data[[x]], "Date") || is.character(data[[x]]) || is.factor(data[[x]])
+  if(!check_x){
+    stop("x column should be a date or a categorical column.")
+  }
+
+  out <- ms_chart(data = data, x = x, y = y, group = group, labels = labels)
+  out$options <- barchart_options()
+  class(out) <- c("ms_barchart", "ms_chart")
+  out
+}
 
 
 
