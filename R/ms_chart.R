@@ -99,8 +99,8 @@ ms_barchart <- function(data, x, y, group = NULL, labels = NULL){
   out
 }
 
-#' @title piechart object
-#' @description Creation of a piechart object that can be
+#' @title barchart object
+#' @description Creation of a barchart object that can be
 #' inserted in a 'Microsoft' document.
 #'
 #' Bar charts illustrate comparisons among individual items. In a bar chart, the
@@ -111,7 +111,7 @@ ms_barchart <- function(data, x, y, group = NULL, labels = NULL){
 #'
 #' * The axis labels are long.
 #' * The values that are shown are durations.
-#' @inheritParams ms_piechart
+#' @inheritParams ms_linechart
 #' @family 'Office' chart objects
 #' @seealso [chart_settings()], [chart_ax_x()], [chart_ax_y()],
 #' [chart_data_labels()], [chart_theme()], [chart_labels()]
@@ -141,8 +141,8 @@ ms_piechart <- function(data, x, y, group = NULL, labels = NULL){
   }
 
   out <- ms_chart(data = data, x = x, y = y, group = group, labels = labels)
-  out$options <- barchart_options()
-  class(out) <- c("ms_barchart", "ms_chart")
+  out$options <- piechart_options()
+  class(out) <- c("ms_piechart", "ms_chart")
   out
 }
 
@@ -377,15 +377,20 @@ format.ms_chart  <- function(x, id_x, id_y, sheetname = "sheet1", drop_ext_data 
   if( is.null(x$y_axis$num_fmt) )
     x$y_axis$num_fmt <- x$theme[[x$fmt_names$y]]
 
-  x_axis_str <- axis_content_xml( x$x_axis, id = id_x, theme = x$theme,
-                                  cross_id = id_y, is_x = TRUE,
-                                  lab = htmlEscape(x$labels$x), rot = x$theme$title_x_rot )
-  x_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$x, x_axis_str, x$axis_tag$x)
+  x_axis_str <- ''
+  y_axis_str <- ''
 
-  y_axis_str <- axis_content_xml( x$y_axis, id = id_y, theme = x$theme,
-                                  cross_id = id_x, is_x = FALSE,
-                                  lab = htmlEscape(x$labels$y), rot = x$theme$title_y_rot )
-  y_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$y, y_axis_str, x$axis_tag$y)
+  if (!("ms_piechart" %in% class(x))) {
+    x_axis_str <- axis_content_xml( x$x_axis, id = id_x, theme = x$theme,
+                                    cross_id = id_y, is_x = TRUE,
+                                    lab = htmlEscape(x$labels$x), rot = x$theme$title_x_rot )
+    x_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$x, x_axis_str, x$axis_tag$x)
+
+    y_axis_str <- axis_content_xml( x$y_axis, id = id_y, theme = x$theme,
+                                    cross_id = id_x, is_x = FALSE,
+                                    lab = htmlEscape(x$labels$y), rot = x$theme$title_y_rot )
+    y_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$y, y_axis_str, x$axis_tag$y)
+  }
 
   ns <- "xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\""
   xml_elt <- paste0("<c:plotArea ", ns, "><c:layout/>", str_, x_axis_str, y_axis_str, "</c:plotArea>")
@@ -425,3 +430,63 @@ format.ms_chart  <- function(x, id_x, id_y, sheetname = "sheet1", drop_ext_data 
   as.character(xml_doc)
 }
 
+# Special format behaviour for pie_charts
+#' @importFrom htmltools htmlEscape
+#' @importFrom xml2 xml_attr<- xml_remove
+format.pie_chart  <- function(x, id_x, id_y, sheetname = "sheet1", drop_ext_data = FALSE){
+  str_ <- to_pml(x, id_x = id_x, id_y = id_y, sheetname = sheetname)
+
+
+  # if( is.null(x$x_axis$num_fmt) )
+  #   x$x_axis$num_fmt <- x$theme[[x$fmt_names$x]]
+  # if( is.null(x$y_axis$num_fmt) )
+  #   x$y_axis$num_fmt <- x$theme[[x$fmt_names$y]]
+  #
+  # x_axis_str <- axis_content_xml( x$x_axis, id = id_x, theme = x$theme,
+  #                                 cross_id = id_y, is_x = TRUE,
+  #                                 lab = htmlEscape(x$labels$x), rot = x$theme$title_x_rot )
+  # x_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$x, x_axis_str, x$axis_tag$x)
+  #
+  # y_axis_str <- axis_content_xml( x$y_axis, id = id_y, theme = x$theme,
+  #                                 cross_id = id_x, is_x = FALSE,
+  #                                 lab = htmlEscape(x$labels$y), rot = x$theme$title_y_rot )
+  # y_axis_str <- sprintf("<%s>%s</%s>", x$axis_tag$y, y_axis_str, x$axis_tag$y)
+
+  ns <- "xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\""
+  # xml_elt <- paste0("<c:plotArea ", ns, "><c:layout/>", str_, x_axis_str, y_axis_str, "</c:plotArea>")
+  xml_elt <- paste0("<c:plotArea ", ns, "><c:layout/>", str_, "</c:plotArea>")
+  xml_doc <- read_xml(system.file(package = "mschart", "template", "chart.xml"))
+
+  node <- xml_find_first(xml_doc, "//c:plotArea")
+  xml_replace( node, as_xml_document(xml_elt) )
+
+  if( !is.null( x$labels[["title"]] ) ){
+    chartnode <- xml_find_first(xml_doc, "//c:chart")
+    title_ <- "<c:title %s><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr/></a:pPr><a:r>%s<a:t>%s</a:t></a:r></a:p></c:rich></c:tx><c:layout/><c:overlay val=\"0\"/></c:title>"
+    title_ <- sprintf(title_, ns, format(x$theme[["main_title"]], type = "pml" ), x$labels[["title"]] )
+    xml_add_child( chartnode, as_xml_document(title_), .where	= 0 )
+  } else { # null is not enough
+    atd_node <- xml_find_first(xml_doc, "//c:chart/c:autoTitleDeleted")
+    xml_attr(atd_node, "val") <- "1"
+  }
+
+  if( x$theme[["legend_position"]] %in% "n" ){
+    legend_pos <- xml_find_first(xml_doc, "//c:chart/c:legend")
+    xml_remove(legend_pos)
+  } else {
+    legend_pos <- xml_find_first(xml_doc, "//c:chart/c:legend/c:legendPos")
+    xml_attr( legend_pos, "val" ) <- x$theme[["legend_position"]]
+
+    rpr <- format(x$theme[["legend_text"]], type = "pml" )
+    rpr <- gsub("a:rPr", "a:defRPr", rpr)
+    labels_text_pr <- "<c:txPr xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:bodyPr/><a:lstStyle/><a:p><a:pPr>%s</a:pPr></a:p></c:txPr>"
+    labels_text_pr <- sprintf(labels_text_pr, rpr )
+    legend_ <- xml_find_first(xml_doc, "//c:chart/c:legend")
+    xml_add_child(legend_, as_xml_document(labels_text_pr) )
+  }
+  if(drop_ext_data){
+    xml_remove(xml_find_first(xml_doc, "//c:externalData"))
+  }
+
+  as.character(xml_doc)
+}

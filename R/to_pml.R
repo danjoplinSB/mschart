@@ -65,18 +65,18 @@ to_pml.ms_barchart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FAL
 
 to_pml.ms_piechart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FALSE, ...){
 
-  if( "clustered" %in% x$options$grouping )
-    if( !x$label_settings$position %in% clustered_pos ){
-      stop("label position issue with grouping 'clustered'.",
-           "Arg. position in chart_data_labels() should match one of ",
-           paste(shQuote(clustered_pos), collapse = ", "), ".", call. = FALSE)
-    }
-  if( "stacked" %in% x$options$grouping )
-    if( !x$label_settings$position %in% stacked_pos ){
-      stop("label position issue with grouping 'clustered'.",
-           "Arg. position in chart_data_labels() should match one of ",
-           paste(shQuote(stacked_pos), collapse = ", "), ".", call. = FALSE)
-    }
+  # if( "clustered" %in% x$options$grouping )
+  #   if( !x$label_settings$position %in% clustered_pos ){
+  #     stop("label position issue with grouping 'clustered'.",
+  #          "Arg. position in chart_data_labels() should match one of ",
+  #          paste(shQuote(clustered_pos), collapse = ", "), ".", call. = FALSE)
+  #   }
+  # if( "stacked" %in% x$options$grouping )
+  #   if( !x$label_settings$position %in% stacked_pos ){
+  #     stop("label position issue with grouping 'clustered'.",
+  #          "Arg. position in chart_data_labels() should match one of ",
+  #          paste(shQuote(stacked_pos), collapse = ", "), ".", call. = FALSE)
+  #   }
 
   series <- as_series(x, x_class = serie_builtin_class(x$data[[x$x]]),
                       y_class = serie_builtin_class(x$data[[x$y]]), sheetname = sheetname )
@@ -110,8 +110,8 @@ to_pml.ms_piechart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FAL
   x_ax_id <- sprintf("<c:axId val=\"%s\"/>", id_x)
   y_ax_id <- sprintf("<c:axId val=\"%s\"/>", id_y)
 
-  dir_ <- structure(c("bar", "col"), .Names = c("horizontal", "vertical"))
-  dir_ <- dir_[x$options$dir]
+  # dir_ <- structure(c("bar", "col"), .Names = c("horizontal", "vertical"))
+  # dir_ <- dir_[x$options$dir]
 
   paste0( "<c:pieChart>",
           # sprintf("<c:barDir val=\"%s\"/>", dir_),
@@ -121,7 +121,8 @@ to_pml.ms_piechart <- function(x, id_x, id_y, sheetname = "sheet1", add_ns = FAL
           to_pml(x$label_settings, !is.null(x$label_cols)),
           # sprintf("<c:gapWidth val=\"%.0f\"/>", x$options$gap_width),
           # sprintf("<c:overlap val=\"%.0f\"/>", x$options$overlap),
-          # x_ax_id, y_ax_id,
+          "<c:firstSliceAng val=\"0\"/>",
+          x_ax_id, y_ax_id,
           "</c:pieChart>" )
 }
 
